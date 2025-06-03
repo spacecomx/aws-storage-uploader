@@ -41,14 +41,14 @@ await uploader.uploadFile('your-bucket-name', '/path/to/your/file.jpg');
 
 For detailed usage instructions and examples:
 
-- [Usage Guide](docs/USAGE.md) - Complete API documentation with examples
-- [CLI Reference](docs/CLI.md) - Command-line interface documentation
-- [Contributing](docs/CONTRIBUTING.md) - Guidelines for contributors
-- [Development](docs/DEVELOPMENT.md) - Setup and development workflow
+- [Usage Guide](https://github.com/spacecomx/aws-storage-uploader/blob/main/docs/USAGE.md) - Complete API documentation with examples
+- [CLI Reference](https://github.com/spacecomx/aws-storage-uploader/blob/main/docs/CLI.md) - Command-line interface documentation
+- [Contributing](https://github.com/spacecomx/aws-storage-uploader/blob/main/docs/CONTRIBUTING.md) - Guidelines for contributors
+- [Development](https://github.com/spacecomx/aws-storage-uploader/blob/main/docs/DEVELOPMENT.md) - Setup and development workflow
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/spacecomx/aws-storage-uploader/blob/main/LICENSE) file for details.
 
 ## Contributors
 

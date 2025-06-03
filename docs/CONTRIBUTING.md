@@ -46,7 +46,7 @@ All pull requests will be automatically checked with our CI workflow to ensure t
 
 ## Development Workflow
 
-See the [Development Guide](DEVELOPMENT.md) for detailed instructions on setting up your development environment and workflow.
+See the [Development Guide](https://github.com/spacecomx/aws-storage-uploader/blob/main/docs/DEVELOPMENT.md) for detailed instructions on setting up your development environment and workflow.
 
 ## Coding Standards
 
@@ -64,4 +64,4 @@ See the [Development Guide](DEVELOPMENT.md) for detailed instructions on setting
 
 ## License
 
-By contributing to this project, you agree that your contributions will be licensed under the project's [MIT License](../LICENSE.md)
+By contributing to this project, you agree that your contributions will be licensed under the project's [MIT License](https://github.com/spacecomx/aws-storage-uploader/blob/main/LICENSE)

@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "cli": "ts-node src/cli.ts",
     "semantic-release": "semantic-release",
-    "generate-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
+    "clean": "pnpm rimraf dist coverage",
+    "clean:all": "pnpm clean && rimraf pnpm-lock.yaml node_modules"
   },
   "keywords": [
     "aws",
@@ -27,7 +28,7 @@
   ],
   "author": "Spacecomx, LLC",
   "license": "MIT",
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.11.1",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.821.0",
     "mime-types": "^3.0.1"
@@ -35,11 +36,11 @@
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "conventional-changelog-cli": "^4.1.0",
     "@types/mime-types": "^3.0.0",
     "@types/node": "^22.15.29",
     "@vitest/coverage-v8": "^3.2.0",
     "aws-sdk-client-mock": "^4.1.0",
+    "rimraf": "^6.0.1",
     "semantic-release": "^23.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",

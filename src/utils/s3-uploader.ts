@@ -1,167 +1,69 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { 
+  S3Client, 
+  PutObjectCommand, 
+  ListObjectsV2Command, 
+  DeleteObjectCommand, 
+  DeleteObjectsCommand,
+  S3ServiceException
+} from '@aws-sdk/client-s3';
 import { createReadStream } from 'fs';
 import { lookup } from 'mime-types';
 
-/**
- * Options for uploading files to S3
- */
 export interface UploadOptions {
-  /**
-   * Whether to overwrite existing files
-   * @default true
-   */
   overwrite?: boolean;
-  
-  /**
-   * Custom content type for the file
-   * If not provided, it will be determined from the file extension
-   */
   contentType?: string;
-  
-  /**
-   * Additional metadata to include with the object
-   */
   metadata?: Record<string, string>;
 }
 
-/**
- * Result of an upload operation
- */
 export interface UploadResult {
-  /**
-   * The key of the uploaded object in S3
-   */
   key: string;
-  
-  /**
-   * The ETag of the uploaded object
-   */
   eTag?: string;
-  
-  /**
-   * Whether the file was uploaded or skipped
-   */
   uploaded: boolean;
 }
 
-/**
- * Utility class for uploading files and folders to S3
- */
 export class S3Uploader {
   private s3Client: S3Client;
   
-  /**
-   * Create a new S3Uploader
-   * @param region AWS region
-   * @param credentials Optional AWS credentials
-   */
   constructor(region: string) {
     this.s3Client = new S3Client({ region });
   }
   
-  /**
-   * Upload a single file to S3
-   * @param bucketName Name of the S3 bucket
-   * @param filePath Local path to the file
-   * @param key S3 object key (if not provided, the file name will be used)
-   * @param options Upload options
-   * @returns Upload result
-   */
   async uploadFile(
     bucketName: string, 
     filePath: string, 
     key?: string, 
     options: UploadOptions = {}
   ): Promise<UploadResult> {
-    const fileName = path.basename(filePath);
-    const s3Key = key || fileName;
+    this.validateFileExists(filePath);
     
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`File not found: ${filePath}`);
+    const s3Key = key || path.basename(filePath);
+    
+    if (options.overwrite === false && await this.objectExists(bucketName, s3Key)) {
+      console.log(`Skipping ${s3Key} - already exists`);
+      return { key: s3Key, uploaded: false };
     }
     
-    // Check if object already exists and skip if overwrite is false
-    if (options.overwrite === false) {
-      try {
-        const listCommand = new ListObjectsV2Command({
-          Bucket: bucketName,
-          Prefix: s3Key,
-          MaxKeys: 1
-        });
-        
-        const response = await this.s3Client.send(listCommand);
-        if (response.Contents && response.Contents.length > 0) {
-          console.log(`Skipping ${s3Key} - already exists`);
-          return {
-            key: s3Key,
-            uploaded: false
-          };
-        }
-      } catch (error) {
-        console.error('Error checking if object exists:', error);
-      }
-    }
-    
-    // Determine content type
-    const contentType = options.contentType || lookup(filePath) || 'application/octet-stream';
-    
-    // Upload file
-    const fileStream = createReadStream(filePath);
-    
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: s3Key,
-      Body: fileStream,
-      ContentType: contentType,
-      Metadata: options.metadata
-    });
-    
-    try {
-      const response = await this.s3Client.send(command);
-      console.log(`Successfully uploaded ${s3Key}`);
-      return {
-        key: s3Key,
-        eTag: response?.ETag,
-        uploaded: true
-      };
-    } catch (error) {
-      console.error(`Error uploading ${s3Key}:`, error);
-      throw error;
-    }
+    return this.uploadFileToS3(bucketName, filePath, s3Key, options);
   }
   
-  /**
-   * Upload a directory to S3
-   * @param bucketName Name of the S3 bucket
-   * @param dirPath Local path to the directory
-   * @param prefix S3 key prefix (folder path in the bucket)
-   * @param options Upload options
-   * @returns Array of upload results
-   */
   async uploadDirectory(
     bucketName: string, 
     dirPath: string, 
     prefix: string = '', 
     options: UploadOptions = {}
   ): Promise<UploadResult[]> {
-    // Check if directory exists
-    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
-      throw new Error(`Directory not found: ${dirPath}`);
-    }
+    this.validateDirectoryExists(dirPath);
     
-    const results: UploadResult[] = [];
     const files = this.getAllFiles(dirPath);
+    const results: UploadResult[] = [];
     
     for (const file of files) {
-      // Calculate relative path from the directory
-      const relativePath = path.relative(dirPath, file);
-      // Create S3 key with prefix
-      const s3Key = prefix ? `${prefix}/${relativePath}`.replace(/\\\\/g, '/') : relativePath.replace(/\\\\/g, '/');
-      
       try {
+        const relativePath = path.relative(dirPath, file);
+        const s3Key = this.buildS3Key(prefix, relativePath);
+        
         const result = await this.uploadFile(bucketName, file, s3Key, options);
         results.push(result);
       } catch (error) {
@@ -172,20 +74,13 @@ export class S3Uploader {
     return results;
   }
   
-  /**
-   * Delete a single object from S3
-   * @param bucketName Name of the S3 bucket
-   * @param key S3 object key
-   * @returns True if the object was deleted successfully
-   */
   async deleteObject(bucketName: string, key: string): Promise<boolean> {
     try {
-      const command = new DeleteObjectCommand({
+      await this.s3Client.send(new DeleteObjectCommand({
         Bucket: bucketName,
         Key: key
-      });
+      }));
       
-      await this.s3Client.send(command);
       console.log(`Successfully deleted ${key}`);
       return true;
     } catch (error) {
@@ -194,27 +89,18 @@ export class S3Uploader {
     }
   }
   
-  /**
-   * Delete multiple objects from S3
-   * @param bucketName Name of the S3 bucket
-   * @param keys Array of S3 object keys
-   * @returns Array of deleted keys
-   */
   async deleteObjects(bucketName: string, keys: string[]): Promise<string[]> {
-    if (keys.length === 0) {
-      return [];
-    }
+    if (keys.length === 0) return [];
     
     try {
-      const command = new DeleteObjectsCommand({
+      const response = await this.s3Client.send(new DeleteObjectsCommand({
         Bucket: bucketName,
         Delete: {
           Objects: keys.map(key => ({ Key: key })),
           Quiet: false
         }
-      });
+      }));
       
-      const response = await this.s3Client.send(command);
       const deletedKeys = response.Deleted?.map(obj => obj.Key || '') || [];
       console.log(`Successfully deleted ${deletedKeys.length} objects`);
       return deletedKeys;
@@ -224,36 +110,21 @@ export class S3Uploader {
     }
   }
   
-  /**
-   * List objects in a bucket with a given prefix
-   * @param bucketName Name of the S3 bucket
-   * @param prefix S3 key prefix (folder path in the bucket)
-   * @returns Array of object keys
-   */
   async listObjects(bucketName: string, prefix: string = ''): Promise<string[]> {
     try {
-      const command = new ListObjectsV2Command({
-        Bucket: bucketName,
-        Prefix: prefix
-      });
-      
       const keys: string[] = [];
       let isTruncated = true;
       let continuationToken: string | undefined;
       
       while (isTruncated) {
-        const response = await this.s3Client.send(
-          new ListObjectsV2Command({
-            Bucket: bucketName,
-            Prefix: prefix,
-            ContinuationToken: continuationToken
-          })
-        );
+        const response = await this.s3Client.send(new ListObjectsV2Command({
+          Bucket: bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken
+        }));
         
         response.Contents?.forEach(item => {
-          if (item.Key) {
-            keys.push(item.Key);
-          }
+          if (item.Key) keys.push(item.Key);
         });
         
         isTruncated = response.IsTruncated || false;
@@ -267,11 +138,69 @@ export class S3Uploader {
     }
   }
   
-  /**
-   * Get all files in a directory recursively
-   * @param dirPath Directory path
-   * @returns Array of file paths
-   */
+  private async objectExists(bucketName: string, key: string): Promise<boolean> {
+    try {
+      const response = await this.s3Client.send(new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: key,
+        MaxKeys: 1
+      }));
+      
+      return !!(response.Contents && response.Contents.length > 0);
+    } catch (error) {
+      console.error('Error checking if object exists:', error);
+      return false;
+    }
+  }
+  
+  private async uploadFileToS3(
+    bucketName: string,
+    filePath: string,
+    s3Key: string,
+    options: UploadOptions
+  ): Promise<UploadResult> {
+    const contentType = options.contentType || lookup(filePath) || 'application/octet-stream';
+    const fileStream = createReadStream(filePath);
+    
+    try {
+      const response = await this.s3Client.send(new PutObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key,
+        Body: fileStream,
+        ContentType: contentType,
+        Metadata: options.metadata
+      }));
+      
+      console.log(`Successfully uploaded ${s3Key}`);
+      return {
+        key: s3Key,
+        eTag: response?.ETag,
+        uploaded: true
+      };
+    } catch (error) {
+      console.error(`Error uploading ${s3Key}:`, error);
+      throw error;
+    }
+  }
+  
+  private validateFileExists(filePath: string): void {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+  }
+  
+  private validateDirectoryExists(dirPath: string): void {
+    if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+      throw new Error(`Directory not found: ${dirPath}`);
+    }
+  }
+  
+  private buildS3Key(prefix: string, relativePath: string): string {
+    return prefix 
+      ? `${prefix}/${relativePath}`.replace(/\\\\/g, '/') 
+      : relativePath.replace(/\\\\/g, '/');
+  }
+  
   private getAllFiles(dirPath: string): string[] {
     const files: string[] = [];
     

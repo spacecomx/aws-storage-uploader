@@ -121,20 +121,23 @@ console.log(`Deleted ${deletedKeys.length} objects`);
 This package includes a CLI tool for uploading files and directories to S3.
 
 ```bash
-# Upload a file
+# Using npx (npm)
 npx aws-storage-uploader --bucket my-bucket --file ./path/to/file.jpg
 
-# Upload a directory
-npx aws-storage-uploader --bucket my-bucket --dir ./path/to/directory --prefix uploads/my-dir
+# Using pnpm
+pnpm exec aws-storage-uploader --bucket my-bucket --file ./path/to/file.jpg
+
+# Using pnpm dlx for packages not installed locally
+pnpm dlx @spacecomx/aws-storage-uploader --bucket my-bucket --dir ./path/to/directory --prefix uploads/my-dir
 
 # List objects
-npx aws-storage-uploader --bucket my-bucket --list uploads/
+pnpm exec aws-storage-uploader --bucket my-bucket --list uploads/
 
 # Delete an object
-npx aws-storage-uploader --bucket my-bucket --delete uploads/file.jpg
+pnpm exec aws-storage-uploader --bucket my-bucket --delete uploads/file.jpg
 
 # Delete all objects with a prefix (with confirmation prompt)
-npx aws-storage-uploader --bucket my-bucket --delete-all uploads/temp/
+pnpm exec aws-storage-uploader --bucket my-bucket --delete-all uploads/temp/
 ```
 
 ### CLI Options

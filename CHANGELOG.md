@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/spacecomx/aws-storage-uploader/compare/v1.0.0...v1.0.1) (2025-06-03)
+
+
+### Bug Fixes
+
+* set publish access ([a0ca88d](https://github.com/spacecomx/aws-storage-uploader/commit/a0ca88d1b4aeee6f2f241237ef27153b17fb0330))
+
 # 1.0.0 (2025-06-03)
 
 

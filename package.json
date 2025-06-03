@@ -1,6 +1,6 @@
 {
   "name": "@spacecomx/aws-storage-uploader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utility for uploading files and directories to AWS S3 buckets",
   "publishConfig": {
     "access": "public"

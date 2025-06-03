@@ -2,6 +2,15 @@ name: Publish Package
 
 on:
   workflow_dispatch:
+    inputs:
+      registry:
+        description: 'Package registry to publish to'
+        required: true
+        default: 'npm'
+        type: choice
+        options:
+          - npm
+          - github
   push:
     branches: [main]
 
@@ -20,11 +29,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: ${{ github.event.inputs.registry == 'github' && 'https://npm.pkg.github.com' || 'https://registry.npmjs.org' }}
+          scope: '@spacecomx'
           
       - uses: pnpm/action-setup@v3
         with:
-          version: '10.11.0'
+          version: '10.11.1'
           
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -48,5 +58,6 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ (github.event.inputs.registry == 'github' && secrets.GITHUB_TOKEN) || secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ (github.event.inputs.registry == 'github' && secrets.GITHUB_TOKEN) || secrets.NPM_TOKEN }}
         run: pnpm semantic-release

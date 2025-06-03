@@ -10,7 +10,11 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node examples/cli-uploader.ts",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "cli": "ts-node src/cli.ts"
   },
   "keywords": [
     "aws",
@@ -30,8 +34,11 @@
   "devDependencies": {
     "@types/mime-types": "^3.0.0",
     "@types/node": "^22.15.29",
+    "@vitest/coverage-v8": "^1.0.0",
+    "aws-sdk-client-mock": "^3.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^1.0.0"
   },
   "files": [
     "dist",

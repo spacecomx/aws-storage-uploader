@@ -120,6 +120,25 @@ console.log(`Deleted ${deletedKeys.length} objects`);
 
 This package includes a CLI tool for uploading files and directories to S3.
 
+### Running the CLI locally during development
+
+If you're developing this package locally and want to test the CLI without installing it globally, you can run it directly:
+
+```bash
+# Using Node.js directly
+node src/cli.js --bucket my-bucket --file ./path/to/file.jpg
+
+# Using ts-node (if you have it installed)
+ts-node src/cli.ts --bucket my-bucket --file ./path/to/file.jpg
+
+# Using the pnpm script
+pnpm run cli -- --bucket my-bucket --file ./path/to/file.jpg
+```
+
+### Running the CLI from the installed package
+
+Once the package is installed, you can use it as follows:
+
 ```bash
 # Using npx (npm)
 npx aws-storage-uploader --bucket my-bucket --file ./path/to/file.jpg

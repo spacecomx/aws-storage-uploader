@@ -124,7 +124,7 @@ export class S3Uploader {
       console.log(`Successfully uploaded ${s3Key}`);
       return {
         key: s3Key,
-        eTag: response.ETag,
+        eTag: response?.ETag,
         uploaded: true
       };
     } catch (error) {

@@ -89,14 +89,14 @@ for (let i = 0; i < args.length; i++) {
 // Validate required options
 if (!options.bucket) {
   console.error('Error: --bucket option is required');
-  console.log(usage);
+  console.error(usage);
   process.exit(1);
 }
 
 // Ensure at least one operation is specified
 if (!options.file && !options.dir && options.list === undefined && !options.delete && !options.deleteAll) {
   console.error('Error: You must specify an operation (--file, --dir, --list, --delete, or --delete-all)');
-  console.log(usage);
+  console.error(usage);
   process.exit(1);
 }
 

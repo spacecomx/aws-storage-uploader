@@ -10,6 +10,7 @@ A utility for uploading files and directories to AWS S3 buckets and managing S3 
 - Delete objects from S3 buckets
 - Command-line interface for easy usage
 - TypeScript support with full type definitions
+- AWS SSO support
 
 ## Installation
 
@@ -34,6 +35,9 @@ import { S3Uploader } from '@spacecomx/aws-storage-uploader';
 // Create an uploader instance with your AWS region
 const uploader = new S3Uploader('us-east-1');
 
+// Or with an AWS profile
+const uploaderWithProfile = new S3Uploader('us-east-1', 'your-aws-profile');
+
 // Upload a single file
 const result = await uploader.uploadFile(
   'your-bucket-name',
@@ -43,7 +47,8 @@ const result = await uploader.uploadFile(
     metadata: {
       'description': 'Example image upload',
       'owner': 'spacecomx'
-    }
+    },
+    verbose: true // Enable console logging for operations
   }
 );
 
@@ -63,7 +68,8 @@ const results = await uploader.uploadDirectory(
   '/path/to/your/directory',
   'uploads/my-directory', // Optional: specify a prefix (folder) in S3
   {
-    overwrite: false // Skip files that already exist
+    overwrite: false, // Skip files that already exist
+    verbose: true     // Enable console logging for operations
   }
 );
 
@@ -98,7 +104,8 @@ const uploader = new S3Uploader('us-east-1');
 // Delete a single object
 await uploader.deleteObject(
   'your-bucket-name',
-  'uploads/file.jpg'
+  'uploads/file.jpg',
+  true // Optional: enable verbose logging
 );
 
 // Delete multiple objects
@@ -110,7 +117,8 @@ const keysToDelete = [
 
 const deletedKeys = await uploader.deleteObjects(
   'your-bucket-name',
-  keysToDelete
+  keysToDelete,
+  true // Optional: enable verbose logging
 );
 
 console.log(`Deleted ${deletedKeys.length} objects`);
@@ -131,8 +139,11 @@ node src/cli.js --bucket my-bucket --file ./path/to/file.jpg
 # Using ts-node (if you have it installed)
 ts-node src/cli.ts --bucket my-bucket --file ./path/to/file.jpg
 
-# Using the pnpm script
-pnpm run cli -- --bucket my-bucket --file ./path/to/file.jpg
+# Using the npm script (if you added it to package.json)
+npm run cli -- --bucket my-bucket --file ./path/to/file.jpg
+
+# Using AWS SSO profile
+ts-node src/cli.ts --bucket my-bucket --file ./path/to/file.jpg --profile your-sso-profile
 ```
 
 ### Running the CLI from the installed package
@@ -157,12 +168,16 @@ pnpm exec aws-storage-uploader --bucket my-bucket --delete uploads/file.jpg
 
 # Delete all objects with a prefix (with confirmation prompt)
 pnpm exec aws-storage-uploader --bucket my-bucket --delete-all uploads/temp/
+
+# Using with AWS SSO profile
+pnpm exec aws-storage-uploader --bucket my-bucket --file ./path/to/file.jpg --profile your-sso-profile
 ```
 
 ### CLI Options
 
 - `--bucket <name>`: S3 bucket name (required)
 - `--region <region>`: AWS region (default: us-east-1)
+- `--profile <name>`: AWS profile name to use for credentials
 - `--file <path>`: Path to file to upload
 - `--dir <path>`: Path to directory to upload
 - `--prefix <prefix>`: S3 key prefix (folder path in bucket)
@@ -170,6 +185,7 @@ pnpm exec aws-storage-uploader --bucket my-bucket --delete-all uploads/temp/
 - `--list <prefix>`: List objects with the given prefix
 - `--delete <key>`: Delete a single object
 - `--delete-all <prefix>`: Delete all objects with the given prefix (use with caution)
+- `--help`: Show help message
 
 ## AWS Credentials
 
@@ -177,7 +193,23 @@ This package uses the AWS SDK for JavaScript v3, which will automatically use cr
 
 1. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 2. Shared credentials file (`~/.aws/credentials`)
-3. If running on Amazon EC2, credentials from the EC2 instance metadata service
+3. AWS SSO credentials (when using the `--profile` option or constructor parameter)
+4. If running on Amazon EC2, credentials from the EC2 instance metadata service
+
+### Using AWS SSO
+
+If you've authenticated with AWS SSO using the AWS CLI, you can use those credentials:
+
+```bash
+# First, login with AWS SSO
+aws sso login --profile your-sso-profile
+
+# Then use that profile with the CLI
+pnpm ts-node src/cli.ts --bucket my-bucket --file ./path/to/file.jpg --profile your-sso-profile
+
+# Or in your code
+const uploader = new S3Uploader('us-east-1', 'your-sso-profile');
+```
 
 ## License
 

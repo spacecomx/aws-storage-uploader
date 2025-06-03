@@ -108,8 +108,8 @@ describe('CLI', () => {
     // Import the CLI module
     await import('../src/cli');
     
-    // Check that S3Uploader was instantiated
-    expect(S3Uploader).toHaveBeenCalledWith('us-east-1');
+    // Check that S3Uploader was instantiated with region and undefined profile
+    expect(S3Uploader).toHaveBeenCalledWith('us-east-1', undefined);
     
     // Get the mock instance
     const mockInstance = vi.mocked(S3Uploader).mock.results[0].value;
@@ -117,9 +117,42 @@ describe('CLI', () => {
     // Check that uploadFile was called with correct parameters
     expect(mockInstance.uploadFile).toHaveBeenCalledWith(
       'test-bucket',
-      expect.stringContaining('/path/to/file.txt'),
+      '/path/to/file.txt',
       undefined,
-      { overwrite: true }
+      { overwrite: true, verbose: false }
+    );
+  });
+  
+  it('should use the specified AWS profile when provided', async () => {
+    // Mock fs.existsSync to return true
+    vi.mock('fs', () => ({
+      existsSync: vi.fn(() => true),
+      statSync: vi.fn(() => ({ isDirectory: () => false }))
+    }));
+    
+    // Set up process.argv with profile
+    process.argv = [
+      'node', 'cli.js',
+      '--bucket', 'test-bucket',
+      '--file', '/path/to/file.txt',
+      '--profile', 'spacecomx-prod-profile'
+    ];
+    
+    // Import the CLI module
+    await import('../src/cli');
+    
+    // Check that S3Uploader was instantiated with region and profile
+    expect(S3Uploader).toHaveBeenCalledWith('us-east-1', 'spacecomx-prod-profile');
+    
+    // Get the mock instance
+    const mockInstance = vi.mocked(S3Uploader).mock.results[0].value;
+    
+    // Check that uploadFile was called with correct parameters
+    expect(mockInstance.uploadFile).toHaveBeenCalledWith(
+      'test-bucket',
+      '/path/to/file.txt',
+      undefined,
+      { overwrite: true, verbose: false }
     );
   });
   
@@ -133,6 +166,9 @@ describe('CLI', () => {
     
     // Import the CLI module
     await import('../src/cli');
+    
+    // Check that S3Uploader was instantiated with region and undefined profile
+    expect(S3Uploader).toHaveBeenCalledWith('us-east-1', undefined);
     
     // Get the mock instance
     const mockInstance = vi.mocked(S3Uploader).mock.results[0].value;
@@ -152,10 +188,13 @@ describe('CLI', () => {
     // Import the CLI module
     await import('../src/cli');
     
+    // Check that S3Uploader was instantiated with region and undefined profile
+    expect(S3Uploader).toHaveBeenCalledWith('us-east-1', undefined);
+    
     // Get the mock instance
     const mockInstance = vi.mocked(S3Uploader).mock.results[0].value;
     
     // Check that deleteObject was called with correct parameters
-    expect(mockInstance.deleteObject).toHaveBeenCalledWith('test-bucket', 'uploads/file.txt');
+    expect(mockInstance.deleteObject).toHaveBeenCalledWith('test-bucket', 'uploads/file.txt', false);
   });
 });

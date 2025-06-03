@@ -13,6 +13,7 @@ interface CliOptions {
   list?: string;
   delete?: string;
   deleteAll?: string;
+  profile?: string;
 }
 
 // Help text
@@ -24,6 +25,7 @@ Usage: aws-storage-uploader [options]
 Options:
   --bucket <name>       S3 bucket name (required)
   --region <region>     AWS region (default: us-east-1)
+  --profile <name>      AWS profile name to use for credentials
   --file <path>         Path to file to upload
   --dir <path>          Path to directory to upload
   --prefix <prefix>     S3 key prefix (folder path in bucket)
@@ -57,6 +59,9 @@ function parseArgs(): CliOptions {
         break;
       case '--region':
         options.region = args[++i];
+        break;
+      case '--profile':
+        options.profile = args[++i];
         break;
       case '--file':
         options.file = args[++i];
@@ -135,7 +140,7 @@ async function listObjects(uploader: S3Uploader, bucket: string, prefix: string)
 // Delete a single object
 async function deleteObject(uploader: S3Uploader, bucket: string, key: string): Promise<void> {
   console.log(`Deleting object ${key} from bucket ${bucket}...`);
-  await uploader.deleteObject(bucket, key);
+  await uploader.deleteObject(bucket, key, false);
   console.log('Object deleted successfully.');
 }
 
@@ -158,7 +163,7 @@ async function deleteAllObjects(uploader: S3Uploader, bucket: string, prefix: st
     return;
   }
   
-  const deletedKeys = await uploader.deleteObjects(bucket, keys);
+  const deletedKeys = await uploader.deleteObjects(bucket, keys, false);
   console.log(`Successfully deleted ${deletedKeys.length} objects.`);
 }
 
@@ -172,7 +177,7 @@ async function uploadFile(uploader: S3Uploader, bucket: string, filePath: string
   
   console.log(`Uploading file ${resolvedPath} to bucket ${bucket}...`);
   const key = prefix ? `${prefix}/${path.basename(resolvedPath)}` : undefined;
-  const result = await uploader.uploadFile(bucket, resolvedPath, key, { overwrite });
+  const result = await uploader.uploadFile(bucket, resolvedPath, key, { overwrite, verbose: false });
   
   if (result.uploaded) {
     console.log(`Successfully uploaded: ${result.key}`);
@@ -190,7 +195,7 @@ async function uploadDirectory(uploader: S3Uploader, bucket: string, dirPath: st
   }
   
   console.log(`Uploading directory ${resolvedPath} to bucket ${bucket}...`);
-  const results = await uploader.uploadDirectory(bucket, resolvedPath, prefix, { overwrite });
+  const results = await uploader.uploadDirectory(bucket, resolvedPath, prefix, { overwrite, verbose: false });
   
   const uploaded = results.filter(r => r.uploaded).length;
   const skipped = results.filter(r => !r.uploaded).length;
@@ -204,7 +209,7 @@ async function main() {
     const options = parseArgs();
     validateOptions(options);
     
-    const uploader = new S3Uploader(options.region);
+    const uploader = new S3Uploader(options.region, options.profile);
     
     if (options.list !== undefined) {
       await listObjects(uploader, options.bucket!, options.list);

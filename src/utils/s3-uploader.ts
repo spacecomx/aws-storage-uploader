@@ -15,6 +15,7 @@ export interface UploadOptions {
   overwrite?: boolean;
   contentType?: string;
   metadata?: Record<string, string>;
+  verbose?: boolean;
 }
 
 export interface UploadResult {
@@ -26,8 +27,16 @@ export interface UploadResult {
 export class S3Uploader {
   private s3Client: S3Client;
   
-  constructor(region: string) {
-    this.s3Client = new S3Client({ region });
+  constructor(region: string, profile?: string) {
+    const clientConfig: { region: string; credentials?: any } = { region };
+    
+    // When using a profile, we need to use the AWS SDK's credential provider
+    if (profile) {
+      // Set the AWS_PROFILE environment variable which the SDK will use
+      process.env.AWS_PROFILE = profile;
+    }
+    
+    this.s3Client = new S3Client(clientConfig);
   }
   
   async uploadFile(
@@ -41,7 +50,9 @@ export class S3Uploader {
     const s3Key = key || path.basename(filePath);
     
     if (options.overwrite === false && await this.objectExists(bucketName, s3Key)) {
-      console.log(`Skipping ${s3Key} - already exists`);
+      if (options.verbose) {
+        console.log(`Skipping ${s3Key} - already exists`);
+      }
       return { key: s3Key, uploaded: false };
     }
     
@@ -74,14 +85,16 @@ export class S3Uploader {
     return results;
   }
   
-  async deleteObject(bucketName: string, key: string): Promise<boolean> {
+  async deleteObject(bucketName: string, key: string, verbose = false): Promise<boolean> {
     try {
       await this.s3Client.send(new DeleteObjectCommand({
         Bucket: bucketName,
         Key: key
       }));
       
-      console.log(`Successfully deleted ${key}`);
+      if (verbose) {
+        console.log(`Successfully deleted ${key}`);
+      }
       return true;
     } catch (error) {
       console.error(`Error deleting ${key}:`, error);
@@ -89,7 +102,7 @@ export class S3Uploader {
     }
   }
   
-  async deleteObjects(bucketName: string, keys: string[]): Promise<string[]> {
+  async deleteObjects(bucketName: string, keys: string[], verbose = false): Promise<string[]> {
     if (keys.length === 0) return [];
     
     try {
@@ -102,7 +115,9 @@ export class S3Uploader {
       }));
       
       const deletedKeys = response.Deleted?.map(obj => obj.Key || '') || [];
-      console.log(`Successfully deleted ${deletedKeys.length} objects`);
+      if (verbose) {
+        console.log(`Successfully deleted ${deletedKeys.length} objects`);
+      }
       return deletedKeys;
     } catch (error) {
       console.error('Error deleting objects:', error);
@@ -171,7 +186,10 @@ export class S3Uploader {
         Metadata: options.metadata
       }));
       
-      console.log(`Successfully uploaded ${s3Key}`);
+      if (options.verbose) {
+        console.log(`Successfully uploaded ${s3Key}`);
+      }
+      
       return {
         key: s3Key,
         eTag: response?.ETag,

@@ -87,6 +87,7 @@ function parseArgs(): CliOptions {
       case '--help':
         console.log(usage);
         process.exit(0);
+        break;
       default:
         console.error(`Unknown option: ${arg}`);
         console.error(usage);

@@ -2,11 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { 
   S3Client, 
+  S3ClientConfig,
   PutObjectCommand, 
   ListObjectsV2Command, 
   DeleteObjectCommand, 
-  DeleteObjectsCommand,
-  S3ServiceException
+  DeleteObjectsCommand
 } from '@aws-sdk/client-s3';
 import { createReadStream } from 'fs';
 import { lookup } from 'mime-types';
@@ -28,7 +28,7 @@ export class S3Uploader {
   private s3Client: S3Client;
   
   constructor(region: string, profile?: string) {
-    const clientConfig: { region: string; credentials?: any } = { region };
+    const clientConfig: S3ClientConfig = { region };
     
     // When using a profile, we need to use the AWS SDK's credential provider
     if (profile) {

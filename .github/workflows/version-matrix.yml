@@ -1,0 +1,38 @@
+name: Version Matrix Testing
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sundays
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
+        pnpm-version: ['8.15.4', '9.9.0', '10.11.1']
+    
+    name: Node ${{ matrix.node-version }} / pnpm ${{ matrix.pnpm-version }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          
+      - name: Install pnpm ${{ matrix.pnpm-version }}
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ matrix.pnpm-version }}
+          
+      - name: Install dependencies
+        run: pnpm install
+        
+      - name: Test
+        run: pnpm test
+        
+      - name: Build
+        run: pnpm build

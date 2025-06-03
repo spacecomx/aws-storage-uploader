@@ -2,11 +2,18 @@
   "name": "@spacecomx/aws-storage-uploader",
   "version": "1.0.0",
   "description": "Utility for uploading files and directories to AWS S3 buckets",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "aws-storage-uploader": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm run build",
@@ -50,9 +57,5 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
     "vitest": "^3.2.0"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

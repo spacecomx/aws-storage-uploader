@@ -1,0 +1,47 @@
+{
+  "name": "@spacecomx/aws-storage-uploader",
+  "version": "0.1.0",
+  "description": "Utility for uploading files and directories to AWS S3 buckets",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "aws-storage-uploader": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node examples/cli-uploader.ts",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "cli": "ts-node src/cli.ts"
+  },
+  "keywords": [
+    "aws",
+    "s3",
+    "upload",
+    "storage",
+    "file",
+    "directory"
+  ],
+  "author": "Spacecomx, LLC",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.821.0",
+    "mime-types": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^3.0.0",
+    "@types/node": "^22.15.29",
+    "@vitest/coverage-v8": "^3.2.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

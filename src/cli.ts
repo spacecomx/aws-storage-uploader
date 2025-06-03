@@ -117,10 +117,16 @@ async function promptYesNo(question: string): Promise<boolean> {
   return new Promise((resolve) => {
     process.stdout.write(question);
     
-    process.stdin.once('data', (data) => {
+    const stdinListener = (data: Buffer) => {
       const answer = data.toString().trim().toLowerCase();
+      process.stdin.removeListener('data', stdinListener);
+      process.stdin.pause();
       resolve(answer === 'y' || answer === 'yes');
-    });
+    };
+    
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', stdinListener);
   });
 }
 
@@ -138,8 +144,18 @@ async function listObjects(uploader: S3Uploader, bucket: string, prefix: string)
 }
 
 // Delete a single object
-async function deleteObject(uploader: S3Uploader, bucket: string, key: string): Promise<void> {
-  console.log(`Deleting object ${key} from bucket ${bucket}...`);
+async function deleteObject(uploader: S3Uploader, bucket: string, key: string, skipPrompt = false): Promise<void> {
+  console.log(`Preparing to delete object ${key} from bucket ${bucket}...`);
+  
+  if (!skipPrompt) {
+    const confirmation = await promptYesNo(`Are you sure you want to delete this object? (y/n): `);
+    if (!confirmation) {
+      console.log('Operation cancelled.');
+      return;
+    }
+  }
+  
+  console.log(`Deleting object ${key}...`);
   await uploader.deleteObject(bucket, key, false);
   console.log('Object deleted successfully.');
 }
@@ -168,15 +184,28 @@ async function deleteAllObjects(uploader: S3Uploader, bucket: string, prefix: st
 }
 
 // Upload a single file
-async function uploadFile(uploader: S3Uploader, bucket: string, filePath: string, prefix?: string, overwrite = true): Promise<void> {
+async function uploadFile(uploader: S3Uploader, bucket: string, filePath: string, prefix?: string, overwrite = true, skipPrompt = false): Promise<void> {
   const resolvedPath = path.resolve(filePath);
   if (!fs.existsSync(resolvedPath)) {
     console.error(`File not found: ${resolvedPath}`);
     process.exit(1);
   }
   
-  console.log(`Uploading file ${resolvedPath} to bucket ${bucket}...`);
-  const key = prefix ? `${prefix}/${path.basename(resolvedPath)}` : undefined;
+  const fileName = path.basename(resolvedPath);
+  const destination = prefix ? `${prefix}/${fileName}` : fileName;
+  
+  console.log(`Preparing to upload file ${resolvedPath} to bucket ${bucket} as ${destination}...`);
+  
+  if (overwrite && !skipPrompt) {
+    const confirmation = await promptYesNo(`This may overwrite an existing file. Continue? (y/n): `);
+    if (!confirmation) {
+      console.log('Operation cancelled.');
+      return;
+    }
+  }
+  
+  console.log(`Uploading file ${resolvedPath}...`);
+  const key = prefix ? `${prefix}/${fileName}` : undefined;
   const result = await uploader.uploadFile(bucket, resolvedPath, key, { overwrite, verbose: false });
   
   if (result.uploaded) {
@@ -194,7 +223,21 @@ async function uploadDirectory(uploader: S3Uploader, bucket: string, dirPath: st
     process.exit(1);
   }
   
-  console.log(`Uploading directory ${resolvedPath} to bucket ${bucket}...`);
+  // Count files to be uploaded
+  const files = uploader['getAllFiles'](resolvedPath);
+  const destination = prefix ? `${prefix}/` : 'root of bucket';
+  
+  console.log(`Preparing to upload ${files.length} files from ${resolvedPath} to ${destination} in bucket ${bucket}...`);
+  
+  if (files.length > 0) {
+    const confirmation = await promptYesNo(`Continue with uploading ${files.length} files${overwrite ? ' (may overwrite existing files)' : ''}? (y/n): `);
+    if (!confirmation) {
+      console.log('Operation cancelled.');
+      return;
+    }
+  }
+  
+  console.log(`Uploading directory ${resolvedPath}...`);
   const results = await uploader.uploadDirectory(bucket, resolvedPath, prefix, { overwrite, verbose: false });
   
   const uploaded = results.filter(r => r.uploaded).length;
@@ -209,22 +252,28 @@ async function main() {
     const options = parseArgs();
     validateOptions(options);
     
+    // Check if this is a test environment
+    const isTest = process.env.NODE_ENV === 'test';
+    
     const uploader = new S3Uploader(options.region, options.profile);
     
     if (options.list !== undefined) {
       await listObjects(uploader, options.bucket!, options.list);
     } else if (options.delete) {
-      await deleteObject(uploader, options.bucket!, options.delete);
+      await deleteObject(uploader, options.bucket!, options.delete, isTest);
     } else if (options.deleteAll) {
       await deleteAllObjects(uploader, options.bucket!, options.deleteAll);
     } else if (options.file) {
-      await uploadFile(uploader, options.bucket!, options.file, options.prefix, options.overwrite);
+      await uploadFile(uploader, options.bucket!, options.file, options.prefix, options.overwrite, isTest);
     } else if (options.dir) {
       await uploadDirectory(uploader, options.bucket!, options.dir, options.prefix, options.overwrite);
     }
   } catch (error) {
     console.error('Error:', error);
     process.exit(1);
+  } finally {
+    // Ensure the process exits cleanly
+    process.exit(0);
   }
 }
 

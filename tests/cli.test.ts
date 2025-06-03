@@ -22,6 +22,9 @@ describe('CLI', () => {
     // Reset mocks
     vi.resetAllMocks();
     
+    // Set test environment
+    process.env.NODE_ENV = 'test';
+    
     // Setup S3Uploader mock implementation
     const mockUploadFile = vi.fn().mockResolvedValue({ key: 'test-file.txt', uploaded: true });
     const mockUploadDirectory = vi.fn().mockResolvedValue([{ key: 'test-file.txt', uploaded: true }]);
@@ -35,7 +38,8 @@ describe('CLI', () => {
         uploadDirectory: mockUploadDirectory,
         deleteObject: mockDeleteObject,
         deleteObjects: mockDeleteObjects,
-        listObjects: mockListObjects
+        listObjects: mockListObjects,
+        getAllFiles: vi.fn().mockReturnValue([])
       } as unknown as S3Uploader;
     });
     
@@ -92,6 +96,9 @@ describe('CLI', () => {
   });
   
   it('should upload a file when --file option is provided', async () => {
+    // Set test environment
+    process.env.NODE_ENV = 'test';
+    
     // Mock fs.existsSync to return true
     vi.mock('fs', () => ({
       existsSync: vi.fn(() => true),
@@ -124,6 +131,9 @@ describe('CLI', () => {
   });
   
   it('should use the specified AWS profile when provided', async () => {
+    // Set test environment
+    process.env.NODE_ENV = 'test';
+    
     // Mock fs.existsSync to return true
     vi.mock('fs', () => ({
       existsSync: vi.fn(() => true),
@@ -178,6 +188,9 @@ describe('CLI', () => {
   });
   
   it('should delete an object when --delete option is provided', async () => {
+    // Set test environment
+    process.env.NODE_ENV = 'test';
+    
     // Set up process.argv
     process.argv = [
       'node', 'cli.js',
